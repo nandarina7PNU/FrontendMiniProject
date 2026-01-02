@@ -1,45 +1,74 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
+ * Frontend Mini Project
+ * React Native Navigation 구조
  * @format
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import React from 'react';
+import { StatusBar, useColorScheme } from 'react-native';
 import {
   SafeAreaProvider,
-  useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+} from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  MainScreen,
+  GalleryScreen,
+  CreativeScreen,
+  MapScreen,
+} from './src/screens';
+
+export type RootStackParamList = {
+  Main: undefined;
+  Gallery: undefined;
+  Creative: undefined;
+  Map: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  const navTheme = isDarkMode ? DarkTheme : DefaultTheme;
 
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
+      <NavigationContainer theme={navTheme}>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: true,
+            headerTitleAlign: 'center',
+          }}
+        >
+          <Stack.Screen
+            name="Main"
+            component={MainScreen}
+            options={{ title: '메인' }}
+          />
+          <Stack.Screen
+            name="Gallery"
+            component={GalleryScreen}
+            options={{ title: 'Gallery' }}
+          />
+          <Stack.Screen
+            name="Creative"
+            component={CreativeScreen}
+            options={{ title: 'Creative' }}
+          />
+          <Stack.Screen
+            name="Map"
+            component={MapScreen}
+            options={{ title: 'Map' }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 }
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
 
 export default App;
