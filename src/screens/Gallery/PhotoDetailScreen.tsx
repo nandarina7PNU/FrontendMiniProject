@@ -10,7 +10,7 @@ import {
 
 interface Photo {
   id: string;
-  uri: string;
+  uri: string | number;
   name: string;
 }
 
@@ -30,7 +30,7 @@ export const PhotoDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Image
-          source={{ uri: photo.uri }}
+          source={typeof photo.uri === 'number' ? photo.uri : { uri: photo.uri as string }}
           style={styles.fullImage}
           resizeMode="contain"
         />

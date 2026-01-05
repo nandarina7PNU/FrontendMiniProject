@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,19 +9,15 @@ import {
   Dimensions,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-
-interface Photo {
-  id: string;
-  uri: string;
-  name: string;
-}
+import { usePhotoContext, Photo } from '../../context/PhotoContext';
 
 interface Props {
   navigation: any;
+  route: any;
 }
 
 export const GalleryListScreen: React.FC<Props> = ({ navigation }) => {
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const { photos, addPhoto } = usePhotoContext();
 
   const handleAddPhoto = useCallback(() => {
     launchImageLibrary(
@@ -46,11 +42,11 @@ export const GalleryListScreen: React.FC<Props> = ({ navigation }) => {
             uri: asset.uri || '',
             name: asset.fileName || `photo_${Date.now()}`,
           };
-          setPhotos([newPhoto, ...photos]);
+          addPhoto(newPhoto);
         }
       }
     );
-  }, [photos]);
+  }, [addPhoto]);
 
   const handlePhotoPress = (photo: Photo) => {
     navigation.navigate('PhotoDetail', { photo });
@@ -62,9 +58,10 @@ export const GalleryListScreen: React.FC<Props> = ({ navigation }) => {
       onPress={() => handlePhotoPress(item)}
     >
       <Image
-        source={{ uri: item.uri }}
+        source={typeof item.uri === 'number' ? item.uri : { uri: item.uri as string }}
         style={styles.photo}
         resizeMode="cover"
+        onError={(e) => console.log('Image Load Error:', item.uri, e.nativeEvent.error)}
       />
     </TouchableOpacity>
   );
