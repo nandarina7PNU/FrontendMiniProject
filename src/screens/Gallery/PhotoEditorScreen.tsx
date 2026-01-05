@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import ViewShot from 'react-native-view-shot';
+import Svg, { Image as SvgImage, Defs, Filter, FeColorMatrix, Rect } from 'react-native-svg';
 import { DrawingCanvas } from './DrawingCanvas';
 import { saveEditedImage } from './imageUtils';
 import { usePhotoContext, Photo } from '../../context/PhotoContext';
@@ -25,9 +25,11 @@ export const PhotoEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   const { photo }: { photo: Photo } = route.params;
   const { updatePhoto } = usePhotoContext();
 
+  // 모든 슬라이더의 기본값은 1 (원본 상태)
   const [brightness, setBrightness] = useState(1);
   const [saturation, setSaturation] = useState(1);
   const [contrast, setContrast] = useState(1);
+  
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [drawingPath, setDrawingPath] = useState<string>('');
   const [resetTrigger, setResetTrigger] = useState(0);
@@ -108,30 +110,6 @@ export const PhotoEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     setResetTrigger(prev => prev + 1);
   };
 
-  const getFilterStyle = () => {
-    // 밝기 조절: 0.5 ~ 2.0 범위
-    // 0.5 = -50% (어둡게), 1.0 = 0% (원본), 2.0 = +100% (밝게)
-    if (brightness >= 1) {
-      // 밝게: 흰색 오버레이 추가
-      const overlayOpacity = (brightness - 1) / 4; // 0 ~ 0.25
-      return {
-        backgroundColor: `rgba(255, 255, 255, ${overlayOpacity})`,
-      };
-    } else {
-      // 어둡게: 이미지의 opacity 감소
-      const imageOpacity = brightness * 1.5; // 0.75 ~ 1.0 (0.5 * 1.5 = 0.75)
-      return {};
-    }
-  };
-
-  const getImageOpacity = () => {
-    // 어둡게: opacity로 직접 제어
-    if (brightness < 1) {
-      return brightness * 1.5; // 0.5 -> 0.75, 1.0 -> 1.5 (1.0으로 clamp)
-    }
-    return 1;
-  };
-
   return (
     <View style={styles.container}>
       <ViewShot
@@ -140,12 +118,33 @@ export const PhotoEditorScreen: React.FC<Props> = ({ route, navigation }) => {
         style={styles.viewShotContainer}
       >
         <View style={styles.imagePreviewContainer} collapsable={false}>
-          <View style={[styles.imageWrapper, getFilterStyle()]}>
-            <Image
-              source={typeof photo.uri === 'number' ? photo.uri : { uri: photo.uri as string }}
-              style={[styles.previewImage, { opacity: getImageOpacity() }]}
-              resizeMode="contain"
-            />
+          <View style={styles.imageWrapper}>
+            {/* SVG 필터를 사용한 이미지 렌더링 */}
+            <Svg width="100%" height="100%">
+              <Defs>
+                <Filter id="colorFilter">
+                  {/* 밝기(Brightness) 조절: RGB 값에 brightness를 곱함 */}
+                  <FeColorMatrix
+                    type="matrix"
+                    values={`
+                      ${brightness} 0 0 0 0
+                      0 ${brightness} 0 0 0
+                      0 0 ${brightness} 0 0
+                      0 0 0 1 0
+                    `}
+                  />
+                </Filter>
+              </Defs>
+              <SvgImage
+                x="0"
+                y="0"
+                width="100%"
+                height="100%"
+                preserveAspectRatio="xMidYMid meet"
+                href={typeof photo.uri === 'string' ? { uri: photo.uri } : photo.uri}
+                filter="url(#colorFilter)"
+              />
+            </Svg>
           </View>
 
           {/* 그리기 캔버스 - 항상 보이도록 유지 (view-shot이 캡처하기 위해) */}
@@ -172,14 +171,14 @@ export const PhotoEditorScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.controlHeader}>
             <Text style={styles.controlTitle}>밝기</Text>
             <Text style={styles.controlValue}>
-              {brightness < 1 ? Math.round((brightness - 1) * 100) : `+${Math.round((brightness - 1) * 100)}`}%
+              {Math.round(brightness * 100)}%
             </Text>
           </View>
           <Slider
             style={styles.slider}
-            minimumValue={0.5}
+            minimumValue={0}
             maximumValue={2}
-            step={0.05}
+            step={0.1}
             value={brightness}
             onValueChange={setBrightness}
             minimumTrackTintColor="#007AFF"
@@ -217,7 +216,7 @@ export const PhotoEditorScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
           <Slider
             style={styles.slider}
-            minimumValue={0.5}
+            minimumValue={0}
             maximumValue={2}
             step={0.1}
             value={contrast}
