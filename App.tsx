@@ -23,6 +23,7 @@ import {
 } from './src/screens';
 
 export type RootStackParamList = {
+  MainTab: undefined;
   Main: undefined;
   Gallery: undefined;
   Creative: undefined;
@@ -53,7 +54,7 @@ function App() {
           <Stack.Screen
             name="Gallery"
             component={GalleryScreen}
-            options={{ title: 'Gallery' }}
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="Creative"
