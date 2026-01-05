@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -33,8 +34,47 @@ export const PhotoEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [drawingPath, setDrawingPath] = useState<string>('');
   const [resetTrigger, setResetTrigger] = useState(0);
+  
+  // 이미지 레이아웃 계산을 위한 상태
+  const [imageLayout, setImageLayout] = useState({ width: 0, height: 0 });
 
   const viewShotRef = useRef<any>(null);
+
+  // 이미지 원본 크기를 가져와서 화면에 맞게 비율 계산
+  useEffect(() => {
+    const screenWidth = Dimensions.get('window').width;
+    const maxDisplayHeight = 350; // 미리보기 영역 최대 높이
+
+    const calculateLayout = (width: number, height: number) => {
+      const aspectRatio = width / height;
+      
+      let displayWidth = screenWidth;
+      let displayHeight = screenWidth / aspectRatio;
+
+      if (displayHeight > maxDisplayHeight) {
+        displayHeight = maxDisplayHeight;
+        displayWidth = maxDisplayHeight * aspectRatio;
+      }
+
+      setImageLayout({ width: displayWidth, height: displayHeight });
+    };
+
+    if (typeof photo.uri === 'string') {
+      Image.getSize(photo.uri, (width, height) => {
+        calculateLayout(width, height);
+      }, (error) => {
+        console.error("Failed to get image size", error);
+        // 실패 시 기본 비율 설정 (정사각형 등)
+        calculateLayout(screenWidth, screenWidth);
+      });
+    } else {
+      // 로컬 리소스(require)인 경우
+      const source = Image.resolveAssetSource(photo.uri as number);
+      if (source) {
+        calculateLayout(source.width, source.height);
+      }
+    }
+  }, [photo.uri]);
 
   // 뒤로가기 로직: 편집 취소하고 갤러리 목록으로 이동 (스택 초기화)
   const handleBack = React.useCallback(() => {
@@ -112,18 +152,19 @@ export const PhotoEditorScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ViewShot
-        ref={viewShotRef}
-        options={{ format: 'jpg', quality: 0.9 }}
-        style={styles.viewShotContainer}
-      >
-        <View style={styles.imagePreviewContainer} collapsable={false}>
-          <View style={styles.imageWrapper}>
+      <View style={styles.imagePreviewContainer}>
+        {/* ViewShot은 정확히 이미지 크기만큼만 감싸도록 설정 */}
+        <ViewShot
+          ref={viewShotRef}
+          options={{ format: 'jpg', quality: 0.9 }}
+          style={{ width: imageLayout.width, height: imageLayout.height }}
+        >
+          <View style={{ width: imageLayout.width, height: imageLayout.height }} collapsable={false}>
             {/* SVG 필터를 사용한 이미지 렌더링 */}
             <Svg width="100%" height="100%">
               <Defs>
                 <Filter id="colorFilter">
-                  {/* 밝기(Brightness) 조절: RGB 값에 brightness를 곱함 */}
+                  {/* 밝기(Brightness) 조절 */}
                   <FeColorMatrix
                     type="matrix"
                     values={`
@@ -132,6 +173,25 @@ export const PhotoEditorScreen: React.FC<Props> = ({ route, navigation }) => {
                       0 0 ${brightness} 0 0
                       0 0 0 1 0
                     `}
+                    result="brightness"
+                  />
+                  {/* 채도(Saturation) 조절 */}
+                  <FeColorMatrix
+                    type="saturate"
+                    values={saturation}
+                    in="brightness"
+                    result="saturation"
+                  />
+                  {/* 명암(Contrast) 조절: C(v-0.5) + 0.5 = Cv + 0.5(1-C) */}
+                  <FeColorMatrix
+                    type="matrix"
+                    values={`
+                      ${contrast} 0 0 0 ${0.5 * (1 - contrast)}
+                      0 ${contrast} 0 0 ${0.5 * (1 - contrast)}
+                      0 0 ${contrast} 0 ${0.5 * (1 - contrast)}
+                      0 0 0 1 0
+                    `}
+                    in="saturation"
                   />
                 </Filter>
               </Defs>
@@ -140,30 +200,31 @@ export const PhotoEditorScreen: React.FC<Props> = ({ route, navigation }) => {
                 y="0"
                 width="100%"
                 height="100%"
-                preserveAspectRatio="xMidYMid meet"
+                preserveAspectRatio="none" // View 자체가 비율대로 계산되었으므로 꽉 채움
                 href={typeof photo.uri === 'string' ? { uri: photo.uri } : photo.uri}
                 filter="url(#colorFilter)"
               />
             </Svg>
-          </View>
 
-          {/* 그리기 캔버스 - 항상 보이도록 유지 (view-shot이 캡처하기 위해) */}
-          <View 
-            style={[
-              styles.drawingCanvasAbsolute,
-              !isDrawingMode && { pointerEvents: 'none' }
-            ]}
-            collapsable={false}
-          >
-            <DrawingCanvas
-              resetTrigger={resetTrigger}
-              width={Dimensions.get('window').width * 0.9}
-              height={250}
-              onDrawingChange={setDrawingPath}
-            />
+            {/* 그리기 캔버스 - 이미지 크기와 동일하게 설정 */}
+            <View 
+              style={[
+                styles.drawingCanvasAbsolute,
+                { width: '100%', height: '100%', left: 0 }, // 부모 크기에 꽉 차게
+                !isDrawingMode && { pointerEvents: 'none' }
+              ]}
+              collapsable={false}
+            >
+              <DrawingCanvas
+                resetTrigger={resetTrigger}
+                width={imageLayout.width}
+                height={imageLayout.height}
+                onDrawingChange={setDrawingPath}
+              />
+            </View>
           </View>
-        </View>
-      </ViewShot>
+        </ViewShot>
+      </View>
 
       <ScrollView style={styles.controlsContainer}>
         {/* 밝기 조절 */}
@@ -296,34 +357,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  viewShotContainer: {
-    height: 250,
-  },
   imagePreviewContainer: {
-    height: 250,
-    backgroundColor: '#f0f0f0',
+    height: 350, // 고정 높이 대신 이미지 크기에 맞춰짐, 그러나 컨테이너로서의 최대 영역 확보
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f0f0f0',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    position: 'relative',
-  },
-  imageWrapper: {
-    width: '90%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
+    overflow: 'hidden', // 이미지가 튀어나오지 않도록
   },
   drawingCanvasAbsolute: {
     position: 'absolute',
     top: 0,
-    left: '5%',
-    width: '90%',
-    height: 250,
+    left: 0,
   },
   drawingCanvasOverlay: {
     position: 'absolute',
