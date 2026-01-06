@@ -13,12 +13,10 @@ import {
   DarkTheme,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import {
-  MainScreen,
-  GalleryScreen,
-  CreativeScreen,
-  MapScreen,
-} from './src/screens';
+import { MainScreen } from './src/screens/MainScreen';
+import { GalleryScreen } from './src/screens/GalleryScreen';
+import { CreativeScreen } from './src/screens/CreativeScreen';
+import { MapScreen } from './src/screens/MapScreen';
 import { PhotoProvider } from './src/context/PhotoContext';
 
 export type RootStackParamList = {
