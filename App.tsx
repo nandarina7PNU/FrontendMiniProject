@@ -38,6 +38,38 @@ function App() {
   const navTheme = isDarkMode ? DarkTheme : DefaultTheme;
 
   return (
+    <SafeAreaProvider>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      <NavigationContainer theme={navTheme}>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: true,
+            headerTitleAlign: 'center',
+          }}
+        >
+          <Stack.Screen
+            name="Main"
+            component={MainScreen}
+            options={{ title: '메인' }}
+          />
+          <Stack.Screen
+            name="Gallery"
+            component={GalleryScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Creative"
+            component={CreativeScreen}
+            options={{ title: 'Creative' }}
+          />
+          <Stack.Screen
+            name="Map"
+            component={MapScreen}
+            options={{ title: 'Map' }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
     <PhotoProvider>
       <SafeAreaProvider>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
@@ -72,6 +104,7 @@ function App() {
         </NavigationContainer>
       </SafeAreaProvider>
     </PhotoProvider>
+
   );
 }
 
