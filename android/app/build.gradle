@@ -84,6 +84,24 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        
+        // .env 파일에서 환경변수 읽기
+        def envFile = project.rootProject.file('../.env')
+        if (envFile.exists()) {
+            envFile.readLines().each { line ->
+                // 빈 줄이나 주석은 무시
+                if (line && !line.startsWith('#') && line.contains('=')) {
+                    def parts = line.split('=', 2)
+                    if (parts.length == 2) {
+                        def key = parts[0].trim()
+                        def value = parts[1].trim()
+                        if (key && value) {
+                            manifestPlaceholders[key] = value
+                        }
+                    }
+                }
+            }
+        }
     }
     signingConfigs {
         debug {

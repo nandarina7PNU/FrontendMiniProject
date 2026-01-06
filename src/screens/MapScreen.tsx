@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import { GOOGLE_MAPS_API_KEY } from '@env';
 
 export const MapScreen: React.FC = () => {
   // 대한민국(서울) 중심 좌표
@@ -18,6 +19,13 @@ export const MapScreen: React.FC = () => {
   const handleRegionChangeComplete = (newRegion: Region) => {
     setRegion(newRegion);
   };
+
+  // API 키가 설정되지 않았는지 확인 (개발 중 디버깅용)
+  if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'your_api_key_here') {
+    console.warn(
+      'Google Maps API 키가 설정되지 않았습니다. .env 파일을 확인하세요.',
+    );
+  }
 
   return (
     <View style={styles.container}>
